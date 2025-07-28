@@ -1,57 +1,80 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, use } from 'react';
+import { ArrowLeft, Edit, Trash2, Star, Calendar, Hash, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Edit, Star, CheckCircle, XCircle, Calendar, Hash } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/axios';
 import type { Collection } from '@/types/collection';
 
-const CollectionDetailPage = () => {
-    const router = useRouter();
-    const params = useParams();
-    const collectionId = params.id as string;
-
-    const [isLoading, setIsLoading] = useState(true);
+const CollectionDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
+    const { id } = use(params);
     const [collection, setCollection] = useState<Collection | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
     // Fetch collection data
-    useEffect(() => {
-        const fetchCollection = async () => {
-            try {
-                setIsLoading(true);
-                const response = await api.get(`/admin/collections/${collectionId}`);
-                setCollection(response.data);
-            } catch (error) {
-                console.error('Error fetching collection:', error);
-                router.push('/admin/collections');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (collectionId) {
-            fetchCollection();
+    const fetchCollection = async () => {
+        try {
+            const response = await api.get(`/admin/collections/${id}`);
+            const data = response.data;
+            setCollection(data);
+        } catch (error) {
+            console.error('Error fetching collection:', error);
+            router.push('/admin/collections');
+        } finally {
+            setIsLoading(false);
         }
-    }, [collectionId, router]);
+    };
+
+    useEffect(() => {
+        fetchCollection();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
+
+    // Handle delete
+    const handleDelete = async () => {
+        if (!collection) return;
+
+        try {
+            await api.delete(`/admin/collections/${collection.id}`);
+            toast.success('Xóa bộ sưu tập thành công');
+            router.push('/admin/collections');
+        } catch (error) {
+            console.error('Error deleting collection:', error);
+            // Error handling đã được xử lý trong axios interceptor
+        }
+    };
+
+    // Handle edit
+    const handleEdit = () => {
+        router.push(`/admin/collections/${id}/edit`);
+    };
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="space-y-6">
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
             </div>
         );
     }
 
     if (!collection) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <p className="text-muted-foreground">Không tìm thấy bộ sưu tập</p>
+            <div className="space-y-6">
+                <div className="text-center py-12">
+                    <h2 className="text-2xl font-semibold text-muted-foreground">Không tìm thấy bộ sưu tập</h2>
+                    <p className="text-muted-foreground mt-2">
+                        Bộ sưu tập bạn đang tìm kiếm không tồn tại
+                    </p>
+                </div>
             </div>
         );
     }
@@ -70,137 +93,165 @@ const CollectionDetailPage = () => {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <Button
-                    variant="ghost"
+                    variant="outline"
+                    size="sm"
                     onClick={() => router.back()}
-                    className="gap-2"
                 >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-4 w-4 mr-2" />
                     Quay lại
                 </Button>
-                <Button
-                    onClick={() => router.push(`/admin/collections/${collection.id}/edit`)}
-                    className="gap-2"
-                >
-                    <Edit className="h-4 w-4" />
-                    Chỉnh sửa
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={handleEdit}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Chỉnh sửa
+                    </Button>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Xóa
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Xác nhận xóa bộ sưu tập</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Bạn có chắc chắn muốn xóa bộ sưu tập &quot;{collection.name}&quot;?
+                                    Hành động này không thể hoàn tác và sẽ xóa vĩnh viễn bộ sưu tập này.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleDelete}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    Xóa bộ sưu tập
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Information */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <CardTitle className="text-2xl">{collection.name}</CardTitle>
-                                {collection.featured && (
-                                    <Star className="h-5 w-5 text-yellow-500 fill-current" />
-                                )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Basic Information */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Thông tin cơ bản</CardTitle>
+                        <CardDescription>
+                            Thông tin chính của bộ sưu tập
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center gap-4">
+                            <div className="relative w-20 h-20 rounded-lg overflow-hidden">
+                                <Image
+                                    src={collection.image || "https://res.cloudinary.com/doy3slx9i/image/upload/v1735367389/Pengu/not-found_y7uha7.jpg"}
+                                    alt={collection.name}
+                                    fill
+                                    className="object-cover"
+                                />
                             </div>
-                            <CardDescription>
-                                Slug: <code className="text-xs bg-muted px-2 py-1 rounded">{collection.slug}</code>
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Image */}
-                            {collection.image && (
-                                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
-                                    <Image
-                                        src={collection.image}
-                                        alt={collection.name}
-                                        fill
-                                        className="object-cover"
-                                    />
+                            <div className="flex-1">
+                                <h3 className="text-xl font-semibold">{collection.name}</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Hash className="h-4 w-4 text-muted-foreground" />
+                                    <code className="text-sm bg-muted px-2 py-1 rounded">
+                                        {collection.slug}
+                                    </code>
                                 </div>
-                            )}
+                            </div>
+                        </div>
 
-                            {/* Description */}
-                            {collection.description && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Trạng thái:</span>
+                                <div className="flex items-center gap-2">
+                                    {collection.status === 'ACTIVE' ? (
+                                        <Badge variant="default">Hoạt động</Badge>
+                                    ) : (
+                                        <Badge variant="secondary">Không hoạt động</Badge>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Trạng thái nổi bật:</span>
+                                <div className="flex items-center gap-2">
+                                    {collection.featured ? (
+                                        <>
+                                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                            <Badge variant="default">Nổi bật</Badge>
+                                        </>
+                                    ) : (
+                                        <Badge variant="secondary">Bình thường</Badge>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Danh mục:</span>
                                 <div>
-                                    <h3 className="font-semibold mb-2">Mô tả</h3>
-                                    <p className="text-muted-foreground">{collection.description}</p>
+                                    {collection.category ? (
+                                        <Badge variant="outline">{collection.category.name}</Badge>
+                                    ) : (
+                                        <span className="text-muted-foreground text-sm">Không có</span>
+                                    )}
                                 </div>
-                            )}
-
-                            {/* Category */}
-                            <div>
-                                <h3 className="font-semibold mb-2">Danh mục</h3>
-                                {collection.category ? (
-                                    <Badge variant="secondary">{collection.category.name}</Badge>
-                                ) : (
-                                    <span className="text-muted-foreground text-sm">Không có danh mục</span>
-                                )}
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                {/* Sidebar Information */}
-                <div className="space-y-6">
-                    {/* Status Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Trạng thái</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                {/* Timestamps */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Thông tin thời gian</CardTitle>
+                        <CardDescription>
+                            Thời gian tạo và cập nhật bộ sưu tập
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Hoạt động</span>
-                                {collection.status === 'ACTIVE' ? (
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                        <span className="text-sm">Có</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1">
-                                        <XCircle className="h-4 w-4 text-red-500" />
-                                        <span className="text-sm">Không</span>
-                                    </div>
-                                )}
+                                <span className="text-sm font-medium">Ngày tạo:</span>
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">{formatDate(collection.createdAt)}</span>
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Nổi bật</span>
-                                {collection.featured ? (
-                                    <div className="flex items-center gap-1">
-                                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                        <span className="text-sm">Có</span>
-                                    </div>
-                                ) : (
-                                    <span className="text-sm text-muted-foreground">Không</span>
-                                )}
+                                <span className="text-sm font-medium">Cập nhật lần cuối:</span>
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">{formatDate(collection.updatedAt)}</span>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Metadata Card */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Thông tin</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center gap-2 text-sm">
-                                <Hash className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">ID:</span>
-                                <code className="text-xs bg-muted px-2 py-1 rounded">{collection.id}</code>
-                            </div>
-
-                            <Separator />
-
-                            <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">Tạo lúc:</span>
-                                <span className="text-muted-foreground">{formatDate(collection.createdAt)}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">Cập nhật:</span>
-                                <span className="text-muted-foreground">{formatDate(collection.updatedAt)}</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Description */}
+            {collection.description && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Mô tả</CardTitle>
+                        <CardDescription>
+                            Thông tin chi tiết về bộ sưu tập
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="prose prose-sm max-w-none">
+                            <p className="text-muted-foreground leading-relaxed">
+                                {collection.description}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 };
