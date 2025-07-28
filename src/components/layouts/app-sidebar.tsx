@@ -2,18 +2,8 @@
 
 import * as React from "react"
 import {
-  AppWindowMac,
-  SquareTerminal,
-  Users,
-  Target,
-  Store,
   Package,
-  Bell,
-  HelpCircle,
-  Truck,
-  Ticket,
-  Zap,
-  UserCheck,
+  SquareTerminal,
 } from "lucide-react"
 
 import { NavMain } from "@/components/layouts/nav-main"
@@ -46,6 +36,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: SquareTerminal,
         isActive: true,
       },
+      {
+        title: "Danh mục sản phẩm",
+        url: "#",
+        icon: Package,
+        isActive: true,
+        items: [
+          {
+            title: "Danh sách",
+            url: "/admin/categories",
+          },
+          {
+            title: "Thêm mới",
+            url: "/admin/categories/new"
+          }
+        ]
+      }
     ]
   }
 
