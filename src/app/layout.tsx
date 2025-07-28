@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Gifty VN | Mua sắm quà tặng",
   description: "Gifty VN | Mua sắm quà tặng",
   icons: {
-    icon: "/images/favicon.png",
+    icon: "/images/logo.svg",
   },
 };
 
