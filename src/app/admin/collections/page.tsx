@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Star, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Star, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/dataTables/data-table';
 import { DataTableRowActions } from '@/components/dataTables/data-table-row-actions';
@@ -13,10 +13,10 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { api } from '@/lib/axios';
-import type { Category, CategoriesResponse } from '@/types/category';
+import type { Collection, CollectionsResponse } from '@/types/collection';
 
-const CategoryPage = () => {
-    const [categories, setCategories] = useState<Category[]>([]);
+const CollectionsPage = () => {
+    const [collections, setCollections] = useState<Collection[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [pagination, setPagination] = useState({
@@ -27,8 +27,8 @@ const CategoryPage = () => {
     });
     const router = useRouter();
 
-    // Fetch categories
-    const fetchCategories = async (page = 1, search = '') => {
+    // Fetch collections
+    const fetchCollections = async (page = 1, search = '') => {
         try {
             setIsLoading(true);
             const params = {
@@ -37,19 +37,19 @@ const CategoryPage = () => {
                 ...(search && { search }),
             };
 
-            const response = await api.get('/admin/categories', { params });
-            const data: CategoriesResponse = response.data;
-            setCategories(data.categories);
+            const response = await api.get('/admin/collections', { params });
+            const data: CollectionsResponse = response.data;
+            setCollections(data.collections);
             setPagination(data.pagination);
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            console.error('Error fetching collections:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchCategories(1, searchTerm);
+        fetchCollections(1, searchTerm);
     }, [searchTerm]);
 
     // Handle search change
@@ -64,72 +64,78 @@ const CategoryPage = () => {
 
     // Handle refresh
     const handleRefresh = () => {
-        fetchCategories(1, searchTerm);
+        fetchCollections(1, searchTerm);
     };
 
     // Handle delete
-    const handleDelete = async (category: Category) => {
+    const handleDelete = async (collection: Collection) => {
         try {
-            await api.delete(`/admin/categories/${category.id}`);
-            toast.success('Xóa danh mục thành công');
-            fetchCategories();
+            await api.delete(`/admin/collections/${collection.id}`);
+            toast.success('Xóa bộ sưu tập thành công');
+            fetchCollections();
         } catch (error) {
-            console.error('Error deleting category:', error);
+            console.error('Error deleting collection:', error);
             // Error handling đã được xử lý trong axios interceptor
         }
     };
 
     // Handle edit
-    const handleEdit = (category: Category) => {
-        router.push(`/admin/categories/${category.id}/edit`);
+    const handleEdit = (collection: Collection) => {
+        router.push(`/admin/collections/${collection.id}/edit`);
     };
 
     // Handle view
-    const handleView = (category: Category) => {
-        router.push(`/admin/categories/${category.id}`);
+    const handleView = (collection: Collection) => {
+        router.push(`/admin/collections/${collection.id}`);
     };
 
     // Handle add new
     const handleAddNew = () => {
-        router.push('/admin/categories/new');
+        router.push('/admin/collections/new');
     };
 
     // Handle status toggle
-    const handleStatusToggle = async (category: Category) => {
+    const handleStatusToggle = async (collection: Collection) => {
         try {
             // Toggle between ACTIVE and INACTIVE
-            const newStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+            const newStatus = collection.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-            await api.patch(`/admin/categories/${category.id}/status`, {
+            await api.patch(`/admin/collections/${collection.id}/status`, {
                 status: newStatus
             });
 
-            toast.success(`Cập nhật trạng thái danh mục "${category.name}" thành công`);
-            fetchCategories(); // Refresh the list
+            toast.success(`Cập nhật trạng thái bộ sưu tập "${collection.name}" thành công`);
+            fetchCollections(); // Refresh the list
         } catch (error) {
-            console.error('Error updating category status:', error);
+            console.error('Error updating collection status:', error);
             // Error handling đã được xử lý trong axios interceptor
         }
     };
 
-    const columns: ColumnDef<Category>[] = [
+    const columns: ColumnDef<Collection>[] = [
         {
             accessorKey: 'image',
             header: 'Ảnh',
             cell: ({ row }) => (
-                <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                    <Image
-                        src={row.original.image}
-                        alt={row.original.name}
-                        fill
-                        className="object-cover"
-                    />
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
+                    {row.original.image ? (
+                        <Image
+                            src={row.original.image}
+                            alt={row.original.name}
+                            fill
+                            className="object-cover"
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            <span className="text-xs">No image</span>
+                        </div>
+                    )}
                 </div>
             ),
         },
         {
             accessorKey: 'name',
-            header: 'Tên danh mục',
+            header: 'Tên bộ sưu tập',
             cell: ({ row }) => (
                 <div className="font-medium">{row.original.name}</div>
             ),
@@ -144,27 +150,14 @@ const CategoryPage = () => {
             ),
         },
         {
-            accessorKey: 'parent',
-            header: 'Danh mục cha',
+            accessorKey: 'category',
+            header: 'Danh mục',
             cell: ({ row }) => (
                 <div>
-                    {row.original.parent ? (
-                        <Badge variant="secondary">{row.original.parent.name}</Badge>
+                    {row.original.category ? (
+                        <Badge variant="secondary">{row.original.category.name}</Badge>
                     ) : (
                         <span className="text-muted-foreground text-sm">Không có</span>
-                    )}
-                </div>
-            ),
-        },
-        {
-            accessorKey: 'children',
-            header: 'Danh mục con',
-            cell: ({ row }) => (
-                <div>
-                    {row.original._count?.children ? (
-                        <Badge variant="outline">{row.original._count.children}</Badge>
-                    ) : (
-                        <span className="text-muted-foreground text-sm">0</span>
                     )}
                 </div>
             ),
@@ -186,14 +179,14 @@ const CategoryPage = () => {
             accessorKey: 'status',
             header: 'Trạng thái',
             cell: ({ row }) => {
-                const category = row.original;
-                const status = category.status;
+                const collection = row.original;
+                const status = collection.status;
 
                 return (
                     <div className="flex items-center gap-2">
                         <Switch
                             checked={status === 'ACTIVE'}
-                            onCheckedChange={() => handleStatusToggle(category)}
+                            onCheckedChange={() => handleStatusToggle(collection)}
                             className="data-[state=checked]:bg-green-500"
                         />
                         <span className="text-sm text-muted-foreground">
@@ -226,8 +219,8 @@ const CategoryPage = () => {
                             icon: Trash2,
                             variant: 'destructive',
                             separator: true,
-                            confirmTitle: 'Xác nhận xóa danh mục',
-                            confirmMessage: `Bạn có chắc chắn muốn xóa danh mục "${row.original.name}"? Hành động này không thể hoàn tác.`,
+                            confirmTitle: 'Xác nhận xóa bộ sưu tập',
+                            confirmMessage: `Bạn có chắc chắn muốn xóa bộ sưu tập "${row.original.name}"? Hành động này không thể hoàn tác.`,
                         },
                     ]}
                 />
@@ -240,26 +233,26 @@ const CategoryPage = () => {
             <Card>
                 <CardHeader className='flex items-center justify-between'>
                     <div>
-                        <CardTitle>Danh sách danh mục</CardTitle>
+                        <CardTitle>Danh sách bộ sưu tập</CardTitle>
                         <CardDescription>
-                            Tổng cộng {pagination.total} danh mục
+                            Tổng cộng {pagination.total} bộ sưu tập
                         </CardDescription>
                     </div>
                     <div className="flex items-center justify-end">
                         <Button onClick={handleAddNew}>
                             <Plus className="h-4 w-4 mr-2" />
-                            Thêm danh mục
+                            Thêm bộ sưu tập
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <DataTable
                         columns={columns}
-                        data={categories}
+                        data={collections}
                         searchKey="name"
-                        searchPlaceholder="Tìm kiếm danh mục..."
+                        searchPlaceholder="Tìm kiếm bộ sưu tập..."
                         isLoading={isLoading}
-                        emptyMessage="Không có danh mục nào."
+                        emptyMessage="Không có bộ sưu tập nào."
                         onSearchChange={handleSearchChange}
                         onExport={handleExport}
                         onRefresh={handleRefresh}
@@ -271,4 +264,4 @@ const CategoryPage = () => {
     );
 };
 
-export default CategoryPage;
+export default CollectionsPage; 

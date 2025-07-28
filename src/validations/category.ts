@@ -11,6 +11,7 @@ export const categorySchema = z.object({
     ),
   image: z.string().optional(),
   featured: z.boolean(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
   parentId: z.string().optional(),
 });
 

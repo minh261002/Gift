@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { CloudinaryUpload } from '@/components/layouts/cloudinary-upload';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,55 +17,56 @@ import { useRouter } from 'next/navigation';
 import slugify from "react-slugify";
 import { api } from '@/lib/axios';
 import type { Category, CategoriesResponse } from '@/types/category';
-import { categorySchema, CategoryFormData } from '@/validations/category';
+import type { CreateCollectionRequest } from '@/types/collection';
+import { collectionSchema, CollectionFormData } from '@/validations/collection';
 
-
-const NewCategoryPage = () => {
-    const [parentCategories, setParentCategories] = useState<Category[]>([]);
+const NewCollectionPage = () => {
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
-    const form = useForm<CategoryFormData>({
-        resolver: zodResolver(categorySchema),
+    const form = useForm<CollectionFormData>({
+        resolver: zodResolver(collectionSchema),
         defaultValues: {
             name: '',
             slug: '',
+            description: '',
             image: '',
             featured: false,
             status: 'ACTIVE',
-            parentId: 'none',
+            categoryId: 'none',
         },
     });
 
-    // Fetch parent categories for select
-    const fetchParentCategories = async () => {
+    // Fetch categories for dropdown
+    const fetchCategories = async () => {
         try {
             const response = await api.get('/admin/categories', { params: { limit: 100 } });
             const data: CategoriesResponse = response.data;
-            setParentCategories(data.categories);
+            setCategories(data.categories);
         } catch (error) {
-            console.error('Error fetching parent categories:', error);
+            console.error('Error fetching categories:', error);
             // Error handling đã được xử lý trong axios interceptor
         }
     };
 
     useEffect(() => {
-        fetchParentCategories();
+        fetchCategories();
     }, []);
 
     // Handle form submission
-    const onSubmit = async (data: CategoryFormData) => {
+    const onSubmit = async (data: CollectionFormData) => {
         try {
             setIsLoading(true);
-            // Convert "none" to undefined for parentId
+            // Convert "none" to undefined for categoryId
             const formData = {
                 ...data,
-                parentId: data.parentId === 'none' ? undefined : data.parentId,
+                categoryId: data.categoryId === 'none' ? undefined : data.categoryId,
             };
 
-            await api.post('/admin/categories', formData);
-            toast.success('Tạo danh mục thành công');
-            router.push('/admin/categories');
+            await api.post('/admin/collections', formData);
+            toast.success('Tạo bộ sưu tập thành công');
+            router.push('/admin/collections');
         } catch (error) {
             console.error('Error submitting form:', error);
             // Error handling đã được xử lý trong axios interceptor
@@ -82,13 +84,13 @@ const NewCategoryPage = () => {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Cột chính - Thông tin danh mục */}
+                {/* Cột chính - Thông tin bộ sưu tập */}
                 <div className="lg:col-span-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Thông tin danh mục</CardTitle>
+                            <CardTitle>Thông tin bộ sưu tập</CardTitle>
                             <CardDescription>
-                                Điền thông tin để tạo danh mục mới
+                                Điền thông tin để tạo bộ sưu tập mới
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -99,10 +101,10 @@ const NewCategoryPage = () => {
                                         name="name"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Tên danh mục</FormLabel>
+                                                <FormLabel>Tên bộ sưu tập</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="Nhập tên danh mục"
+                                                        placeholder="Nhập tên bộ sưu tập"
                                                         {...field}
                                                         onChange={(e) => {
                                                             field.onChange(e);
@@ -123,12 +125,12 @@ const NewCategoryPage = () => {
                                                 <FormLabel>Slug</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="ten-danh-muc"
+                                                        placeholder="ten-bo-suu-tap"
                                                         {...field}
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
-                                                    URL-friendly version của tên danh mục
+                                                    URL-friendly version của tên bộ sưu tập
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
@@ -137,19 +139,19 @@ const NewCategoryPage = () => {
 
                                     <FormField
                                         control={form.control}
-                                        name="parentId"
+                                        name="categoryId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Danh mục cha</FormLabel>
+                                                <FormLabel>Danh mục</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger className='w-full'>
-                                                            <SelectValue placeholder="Chọn danh mục cha (tùy chọn)" />
+                                                            <SelectValue placeholder="Chọn danh mục (tùy chọn)" />
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="none">Danh mục gốc</SelectItem>
-                                                        {parentCategories.map((category) => (
+                                                        <SelectItem value="none">Không có danh mục</SelectItem>
+                                                        {categories.map((category) => (
                                                             <SelectItem key={category.id} value={category.id}>
                                                                 {category.name}
                                                             </SelectItem>
@@ -157,7 +159,7 @@ const NewCategoryPage = () => {
                                                     </SelectContent>
                                                 </Select>
                                                 <FormDescription>
-                                                    Chọn danh mục cha nếu đây là danh mục con
+                                                    Chọn danh mục liên quan đến bộ sưu tập
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
@@ -166,23 +168,22 @@ const NewCategoryPage = () => {
 
                                     <FormField
                                         control={form.control}
-                                        name="status"
+                                        name="description"
                                         render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Hoạt động</FormLabel>
-                                                    <FormDescription>
-                                                        Danh mục có hiển thị cho người dùng
-                                                    </FormDescription>
-                                                </div>
+                                            <FormItem>
+                                                <FormLabel>Mô tả</FormLabel>
                                                 <FormControl>
-                                                    <Switch
-                                                        checked={field.value === 'ACTIVE'}
-                                                        onCheckedChange={(checked) => {
-                                                            field.onChange(checked ? 'ACTIVE' : 'INACTIVE');
-                                                        }}
+                                                    <Textarea
+                                                        placeholder="Nhập mô tả bộ sưu tập"
+                                                        className="resize-none"
+                                                        rows={4}
+                                                        {...field}
                                                     />
                                                 </FormControl>
+                                                <FormDescription>
+                                                    Mô tả chi tiết về bộ sưu tập
+                                                </FormDescription>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -195,13 +196,36 @@ const NewCategoryPage = () => {
                                                 <div className="space-y-0.5">
                                                     <FormLabel className="text-base">Nổi bật</FormLabel>
                                                     <FormDescription>
-                                                        Hiển thị danh mục này ở vị trí nổi bật
+                                                        Hiển thị bộ sưu tập này ở vị trí nổi bật
                                                     </FormDescription>
                                                 </div>
                                                 <FormControl>
                                                     <Switch
                                                         checked={field.value}
                                                         onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="status"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">Hoạt động</FormLabel>
+                                                    <FormDescription>
+                                                        Bộ sưu tập có hiển thị cho người dùng
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value === 'ACTIVE'}
+                                                        onCheckedChange={(checked) => {
+                                                            field.onChange(checked ? 'ACTIVE' : 'INACTIVE');
+                                                        }}
                                                     />
                                                 </FormControl>
                                             </FormItem>
@@ -217,9 +241,9 @@ const NewCategoryPage = () => {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Ảnh danh mục</CardTitle>
+                            <CardTitle>Ảnh bộ sưu tập</CardTitle>
                             <CardDescription>
-                                Upload ảnh đại diện cho danh mục
+                                Upload ảnh đại diện cho bộ sưu tập
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -233,8 +257,8 @@ const NewCategoryPage = () => {
                                                 <CloudinaryUpload
                                                     value={field.value}
                                                     onChange={field.onChange}
-                                                    folder="categories"
-                                                    placeholder="Upload ảnh danh mục"
+                                                    folder="collections"
+                                                    placeholder="Upload ảnh bộ sưu tập"
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -257,7 +281,7 @@ const NewCategoryPage = () => {
                                 onClick={form.handleSubmit(onSubmit)}
                             >
                                 <Save className="h-4 w-4 mr-2" />
-                                {isLoading ? 'Đang tạo...' : 'Tạo danh mục'}
+                                {isLoading ? 'Đang tạo...' : 'Tạo bộ sưu tập'}
                             </Button>
                             <Button
                                 type="button"
@@ -276,4 +300,4 @@ const NewCategoryPage = () => {
     );
 };
 
-export default NewCategoryPage; 
+export default NewCollectionPage; 

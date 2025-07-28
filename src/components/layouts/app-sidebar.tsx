@@ -5,6 +5,7 @@ import {
   Package,
   SquareTerminal,
   Users,
+  FolderOpen,
 } from "lucide-react"
 
 import { NavMain } from "@/components/layouts/nav-main"
@@ -50,6 +51,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: "Thêm mới",
             url: "/admin/categories/new"
+          }
+        ]
+      },
+      {
+        title: "Bộ sưu tập",
+        url: "#",
+        icon: FolderOpen,
+        isActive: true,
+        items: [
+          {
+            title: "Danh sách",
+            url: "/admin/collections",
+          },
+          {
+            title: "Thêm mới",
+            url: "/admin/collections/new"
           }
         ]
       },

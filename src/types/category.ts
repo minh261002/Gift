@@ -4,6 +4,7 @@ export interface Category {
   slug: string;
   image: string;
   featured: boolean;
+  status: "ACTIVE" | "INACTIVE";
   parentId?: string;
   parent?: {
     id: string;

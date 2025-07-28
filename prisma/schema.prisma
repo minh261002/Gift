@@ -26,6 +26,32 @@ enum UserStatus {
   PENDING
 }
 
+enum BrandStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+enum BrandType {
+  LOCAL
+  INTERNATIONAL
+  PREMIUM
+  BUDGET
+  LUXURY
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+enum CollectionStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id            String        @id @default(uuid())
   name          String        @db.Text
@@ -113,11 +139,12 @@ enum AddressType {
 }
 
 model Category {
-  id       String  @id @default(uuid())
+  id       String         @id @default(uuid())
   name     String
-  slug     String  @unique
-  image    String  @db.Text
-  featured Boolean @default(false)
+  slug     String         @unique
+  image    String         @db.Text
+  featured Boolean        @default(false)
+  status   CategoryStatus @default(ACTIVE)
 
   parentId String?
   parent   Category?  @relation("CategoryToSubcategories", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -125,9 +152,33 @@ model Category {
   // products        Product[]
   // behaviors       UserBehavior[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  collections Collection[]
 
   @@index([parentId])
   @@map("categories")
+}
+
+model Collection {
+  id          String           @id @default(uuid())
+  name        String
+  slug        String           @unique
+  description String?          @db.Text
+  image       String?          @db.Text
+  featured    Boolean          @default(false)
+  status      CollectionStatus @default(ACTIVE)
+
+  // Relationships
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // products        Product[]
+  // behaviors       UserBehavior[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@map("collections")
 }

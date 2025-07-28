@@ -33,6 +33,7 @@ const EditCategoryPage = ({ params }: { params: Promise<{ id: string }> }) => {
             slug: '',
             image: '',
             featured: false,
+            status: 'ACTIVE',
             parentId: 'none',
         },
     });
@@ -50,6 +51,7 @@ const EditCategoryPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 slug: data.slug,
                 image: data.image,
                 featured: data.featured,
+                status: data.status,
                 parentId: data.parentId || 'none',
             });
         } catch (error) {
@@ -211,6 +213,29 @@ const EditCategoryPage = ({ params }: { params: Promise<{ id: string }> }) => {
                                                     Chọn danh mục cha nếu đây là danh mục con
                                                 </FormDescription>
                                                 <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="status"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-base">Hoạt động</FormLabel>
+                                                    <FormDescription>
+                                                        Danh mục có hiển thị cho người dùng
+                                                    </FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value === 'ACTIVE'}
+                                                        onCheckedChange={(checked) => {
+                                                            field.onChange(checked ? 'ACTIVE' : 'INACTIVE');
+                                                        }}
+                                                    />
+                                                </FormControl>
                                             </FormItem>
                                         )}
                                     />

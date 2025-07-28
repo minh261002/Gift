@@ -69,7 +69,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, slug, image, featured, parentId } = body;
+    const { name, slug, image, featured, status, parentId } = body;
 
     // Kiểm tra danh mục tồn tại
     const existingCategory = await prisma.category.findUnique({
@@ -84,7 +84,7 @@ export async function PUT(
     }
 
     // Validation
-    if (!name || !slug || !image) {
+    if (!name || !slug) {
       return NextResponse.json(
         { error: "Name, slug, and image are required" },
         { status: 400 }
@@ -133,8 +133,11 @@ export async function PUT(
       data: {
         name,
         slug,
-        image,
+        image:
+          image ||
+          "https://res.cloudinary.com/doy3slx9i/image/upload/v1735367389/Pengu/not-found_y7uha7.jpg",
         featured,
+        status,
         parentId,
       },
       include: {

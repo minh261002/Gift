@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 
-// GET - Lấy danh sách danh mục
+// GET - Lấy danh sách bộ sưu tập
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || "";
     const featured = searchParams.get("featured");
+    const active = searchParams.get("active");
 
     const skip = (page - 1) * limit;
 
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
         { name: { contains: string } } | { slug: { contains: string } }
       >;
       featured?: boolean;
+      active?: boolean;
     } = {};
 
     if (search) {
@@ -41,30 +43,22 @@ export async function GET(request: NextRequest) {
       where.featured = featured === "true";
     }
 
-    // Lấy tổng số danh mục
-    const total = await prisma.category.count({ where });
+    if (active !== null) {
+      where.active = active === "true";
+    }
 
-    // Lấy danh sách danh mục với phân trang
-    const categories = await prisma.category.findMany({
+    // Lấy tổng số bộ sưu tập
+    const total = await prisma.collection.count({ where });
+
+    // Lấy danh sách bộ sưu tập với phân trang
+    const collections = await prisma.collection.findMany({
       where,
       include: {
-        parent: {
+        category: {
           select: {
             id: true,
             name: true,
             slug: true,
-          },
-        },
-        children: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        _count: {
-          select: {
-            children: true,
           },
         },
       },
@@ -76,7 +70,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      categories,
+      collections,
       pagination: {
         page,
         limit,
@@ -85,7 +79,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error("Error fetching collections:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -93,7 +87,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Tạo danh mục mới
+// POST - Tạo bộ sưu tập mới
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -108,13 +102,14 @@ export async function POST(request: NextRequest) {
     const {
       name,
       slug,
+      description,
       image,
-      featured = false,
+      featured,
       status = "ACTIVE",
-      parentId,
+      categoryId,
     } = body;
 
-    // Validation
+    // Validate required fields
     if (!name || !slug) {
       return NextResponse.json(
         { error: "Name and slug are required" },
@@ -122,45 +117,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Kiểm tra slug đã tồn tại chưa
-    const existingCategory = await prisma.category.findUnique({
+    // Check if slug already exists
+    const existingCollection = await prisma.collection.findUnique({
       where: { slug },
     });
 
-    if (existingCategory) {
+    if (existingCollection) {
       return NextResponse.json(
         { error: "Slug already exists" },
         { status: 400 }
       );
     }
 
-    // Kiểm tra parentId nếu có
-    if (parentId) {
-      const parentCategory = await prisma.category.findUnique({
-        where: { id: parentId },
-      });
-
-      if (!parentCategory) {
-        return NextResponse.json(
-          { error: "Parent category not found" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const category = await prisma.category.create({
+    // Create collection
+    const collection = await prisma.collection.create({
       data: {
         name,
         slug,
+        description,
         image:
           image ||
           "https://res.cloudinary.com/doy3slx9i/image/upload/v1735367389/Pengu/not-found_y7uha7.jpg",
-        featured,
+        featured: featured ?? false,
         status,
-        parentId,
+        categoryId: categoryId || null,
       },
       include: {
-        parent: {
+        category: {
           select: {
             id: true,
             name: true,
@@ -170,9 +153,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(category, { status: 201 });
+    return NextResponse.json(collection, { status: 201 });
   } catch (error) {
-    console.error("Error creating category:", error);
+    console.error("Error creating collection:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
