@@ -65,6 +65,7 @@ const AddressManager = ({ userId }: AddressManagerProps) => {
 
     useEffect(() => {
         fetchAddresses();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
